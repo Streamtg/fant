@@ -10,7 +10,7 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 WORKER_URL = "wss://host.streamgramm.workers.dev/tunnel"
 SECRET = "ec2cb31c0cd22b340d5f7874027afa2828a2c9f639192dfaaced05df5628bb11"
 LOCAL_HOST = "127.0.0.1"
-LOCAL_PORT = 8080
+LOCAL_PORT = 8081
 
 # Servidor local de ejemplo (puedes reemplazarlo por tu bot real)
 class LocalHandler(BaseHTTPRequestHandler):
