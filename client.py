@@ -7,32 +7,21 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 from urllib.parse import urlparse, parse_qs
 
 # ---------------- Configuración ----------------
-WORKER_URL = "wss://host.streamgramm.workers.dev"
+WORKER_URL = "wss://host.streamgramm.workers.dev/tunnel"
 SECRET = "ec2cb31c0cd22b340d5f7874027afa2828a2c9f639192dfaaced05df5628bb11"
 LOCAL_HOST = "127.0.0.1"
-LOCAL_PORT = 8081
+LOCAL_PORT = 8080
 # ----------------------------------------------
 
-# Servidor local de ejemplo (reemplazar con tu bot real)
+# Servidor local de ejemplo (puedes reemplazar con tu bot)
 class LocalHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         parsed_path = urlparse(self.path)
         query = parse_qs(parsed_path.query)
 
-        if parsed_path.path.startswith("/video"):
-            video_id = query.get("id", ["unknown"])[0]
-            self.send_response(200)
-            self.end_headers()
-            self.wfile.write(f"Video solicitado: {video_id}".encode())
-        elif parsed_path.path.startswith("/download"):
-            file_id = query.get("id", ["unknown"])[0]
-            self.send_response(200)
-            self.end_headers()
-            self.wfile.write(f"Descarga solicitada: {file_id}".encode())
-        else:
-            self.send_response(404)
-            self.end_headers()
-            self.wfile.write(b"Ruta no encontrada")
+        self.send_response(200)
+        self.end_headers()
+        self.wfile.write(f"Ruta: {parsed_path.path}, Query: {query}".encode())
 
 def start_local_server():
     server = HTTPServer((LOCAL_HOST, LOCAL_PORT), LocalHandler)
@@ -43,8 +32,11 @@ def start_local_server():
 async def tunnel_client():
     while True:
         try:
-            async with websockets.connect(WORKER_URL + "/tunnel", extra_headers={"X-Auth-Secret": SECRET}) as ws:
-                print("Conectado al Cloudflare Worker Tunnel")
+            async with websockets.connect(
+                WORKER_URL, extra_headers={"X-Auth-Secret": SECRET}
+            ) as ws:
+                print("Conectado al Cloudflare Worker (túnel estilo Ngrok)")
+
                 while True:
                     message = await ws.recv()
                     data = json.loads(message)
@@ -53,17 +45,15 @@ async def tunnel_client():
                     # Forward a servidor local
                     try:
                         resp = requests.get(f"http://{LOCAL_HOST}:{LOCAL_PORT}{path}")
-                        response_data = {
-                            "status": resp.status_code,
-                            "content": resp.text
-                        }
+                        response_data = {"status": resp.status_code, "content": resp.text}
                     except Exception as e:
                         response_data = {"error": str(e)}
 
                     await ws.send(json.dumps(response_data))
+
         except Exception as e:
-            print("Error de conexión al Worker, reintentando...", e)
-            await asyncio.sleep(5)  # Reintenta cada 5s si falla
+            print("Error de conexión, reconectando en 5s...", e)
+            await asyncio.sleep(5)
 
 if __name__ == "__main__":
     threading.Thread(target=start_local_server, daemon=True).start()
