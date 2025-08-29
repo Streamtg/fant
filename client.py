@@ -10,7 +10,7 @@ from urllib.parse import urlparse, parse_qs
 WORKER_URL = "wss://host.streamgramm.workers.dev"
 SECRET = "ec2cb31c0cd22b340d5f7874027afa2828a2c9f639192dfaaced05df5628bb11"
 LOCAL_HOST = "127.0.0.1"
-LOCAL_PORT = 8080
+LOCAL_PORT = 8081
 # ----------------------------------------------
 
 # Servidor local de ejemplo (reemplazar con tu bot real)
