@@ -3,6 +3,7 @@ import websockets
 import requests
 import json
 import threading
+from urllib.parse import urlparse, parse_qs
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
 # Configuración
@@ -11,19 +12,23 @@ SECRET = "ec2cb31c0cd22b340d5f7874027afa2828a2c9f639192dfaaced05df5628bb11"
 LOCAL_HOST = "127.0.0.1"
 LOCAL_PORT = 8080
 
-# Servidor HTTP local ejemplo
+# Servidor local de ejemplo (puedes reemplazarlo por tu bot real)
 class LocalHandler(BaseHTTPRequestHandler):
     def do_GET(self):
-        if self.path.startswith("/video"):
+        parsed_path = urlparse(self.path)
+        query = parse_qs(parsed_path.query)
+        if parsed_path.path.startswith("/video"):
+            video_id = query.get("id", ["unknown"])[0]
             self.send_response(200)
             self.end_headers()
-            self.wfile.write(b"Contenido de video simulado desde servidor local")
-        elif self.path.startswith("/download"):
+            self.wfile.write(f"Video solicitado: {video_id}".encode())
+        elif parsed_path.path.startswith("/download"):
+            file_id = query.get("id", ["unknown"])[0]
             self.send_response(200)
             self.end_headers()
-            self.wfile.write(b"Descarga simulada desde servidor local")
+            self.wfile.write(f"Descarga solicitada: {file_id}".encode())
         else:
-            self.send_response(200)
+            self.send_response(404)
             self.end_headers()
             self.wfile.write(b"Ruta no encontrada")
 
@@ -41,11 +46,9 @@ async def tunnel_client():
                 message = await ws.recv()
                 data = json.loads(message)
                 path = data.get("path", "/")
-                
+
                 # Forward a servidor local
                 resp = requests.get(f"http://{LOCAL_HOST}:{LOCAL_PORT}{path}")
-                
-                # Enviar respuesta al Worker
                 response_data = {
                     "status": resp.status_code,
                     "content": resp.text
